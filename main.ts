@@ -9,7 +9,7 @@
 // grind-down. So this bot trades BOTH regimes:
 //   - Shallow tier: a 50 bps dip off the 45-bar rolling high, confirmed by
 //     a green bar, buys 25% of cash. Small size, trades often (17 fills on
-//     the new dev window), tight exits (trail 80 / stop 80 / hold 90).
+//     the new dev window), tight exits (trail 100 / stop 80 / hold 90).
 //   - Deep tier: a 180 bps dip tops the position up to full size (the
 //     remaining cash) with V-Trail 45's exits (trail 60 / stop 80 / hold
 //     90), so a real V-run is ridden, not cut short. A flat deep dip buys
@@ -21,10 +21,15 @@
 // at an 80 bps dip with tighter exits. That trade is expected to be near
 // breakeven; its job is the race guardrail (at least one trade), not profit.
 //
-// Local simulator (same fill model as the harness) on BOTH frozen windows:
-//   new window (0603): net PnL +7.27 USDC, 17 trades, maxDD 0.6%
-//   old window (0828): net PnL +8.98 USDC, 41 trades, maxDD 4.0%
+// Local simulator (same fill model as the harness) + grade-local on BOTH
+// frozen windows (verified, L1 reproduced byte for byte):
+//   new window (0603): net PnL +7.00 USDC, 17 trades, maxDD 0.67%
+//   old window (0828): net PnL +14.70 USDC, 35 trades, maxDD 3.48%
 // (V-Trail 45 for comparison: +41.79 on old, $0 / 0 trades on new.)
+// Revision history: v1 used a shallow trail of 80; after grading, the 80
+// trail was found to cut shallow winners short, so it was widened to 100
+// (old window +8.30 -> +14.70, new window +7.27 -> +7.00). The deep trail
+// stays 60: widening it destroys the old-window result.
 //
 // Rules (all integer math on price units, deterministic run after run):
 //   - Entry, flat, armed, not cooling down, >= 45 closes seen: close is
@@ -51,7 +56,10 @@ const LOOKBACK = 45;
 // Shallow tier: frequent small dip-buys.
 const S_DIP_BPS = 50n;
 const S_FRAC_PCT = 25n; // percent of cash
-const S_TRAIL_BPS = 80n;
+const S_TRAIL_BPS = 100n; // widened from 80 after grading: the 80 trail cut
+// shallow winners short; 100 lets them run (+64% on the old window, -$0.27
+// on the new one). The deep tier keeps its tight 60 trail: widening it
+// destroys the old-window result (the V rolls over fast once it tops).
 const S_SL_BPS = 80n;
 const S_MAX_HOLD = 90;
 // Deep tier: the V-catcher, full size.
